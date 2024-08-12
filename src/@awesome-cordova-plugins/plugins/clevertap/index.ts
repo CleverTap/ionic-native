@@ -663,28 +663,6 @@ export class CleverTap extends AwesomeCordovaNativePlugin {
     return;
   }
 
-  /**
-   * Deletes all images and gifs which are preloaded for inapps in cs mode.
-   *
-   * @param expiredOnly {boolean} - to clear only assets which will not be needed further for inapps
-   * @returns {Promise<any>}
-   */
-  @Cordova()
-  clearInAppResources(expiredOnly: boolean): Promise<any> {
-    return;
-  }
-
-  /**
-   * Fetches In Apps from server.
-   *
-   * @returns {Promise<any>}
-   */
-  @Cordova()
-  fetchInApps(): Promise<any> {
-    return;
-  }
-
-
   /*******************
    * Session
    ******************/
