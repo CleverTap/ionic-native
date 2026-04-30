@@ -118,9 +118,7 @@ export enum LoginType {
    * SAML 2.0 Login Type
    */
   saml2 = 'SAML2',
-  /**
-   * TODO:
-   */
+  /** Custom authentication */
   custom = 'CUSTOM',
 }
 
@@ -215,6 +213,10 @@ export enum NotificationListenerType {
    * Notify that the JWT token is received
    */
   JWTTokenReceived = 12,
+  /**
+   * Notify that the JWT token is expired
+   */
+  jwtTokenExpired = 13
 }
 
 export enum AttachmentItemStatus {
@@ -420,6 +422,28 @@ export class LoginParameters {
    * The passed credentials will be used based on this flag.
    */
   requireClientCredentials: boolean;
+
+  /**
+   * Applicable for SAML SSO login. Set token which is retrieved from the SAML SSO login to this parameter.
+   */
+  jwtToken: string;
+
+  /**
+   * Specify the application version.
+   */
+  appVersion: string;
+
+  /**
+   * Specify the redirect URL.
+   */
+  redirectURL: string;
+
+  /**
+   * Specify the database update statements as a JSON string. This will update the database schema.
+   */
+  dbUpdateStatements: string;
+
+  
 }
 export class LoginResult extends UnviredResult {
   type: LoginListenerType;
@@ -437,6 +461,18 @@ export class UnviredCredential {
   user: string;
   password: string;
   port: string;
+}
+
+export class InitialDataDownloadRequest {
+  name: string;
+  input: any;
+}
+
+export class UMPRequestConfig {
+  url: string;
+  headers: {
+    Authorization: string;
+  };
 }
 
 /**
@@ -996,6 +1032,7 @@ export class UnviredCordovaSDK extends AwesomeCordovaNativePlugin {
    * # Select values from FORM_HEADER table where FORM_ID is 5caed815892215034dacad56
    * this.unviredSDK.dbDelete('FORM_HEADER', "FORM_ID = '5caed815892215034dacad56'")
    * ```
+   * @deprecated Use `dbDeleteWithArgs` instead.
    */
   @Cordova()
   dbDelete(tableName: string, whereClause: any): Promise<DbResult> {
@@ -1014,6 +1051,7 @@ export class UnviredCordovaSDK extends AwesomeCordovaNativePlugin {
    * # Update NAME & NO from FORM_HEADER table where FORM_ID is 5caed815892215034dacad56
    * this.unviredSDK.dbUpdate('FORM_HEADER', {"NAME":"UPDATED_USER","UPDATED_NO":"0039"}, "FORM_ID = '5caed815892215034dacad56'")
    * ```
+   * @deprecated Use `dbUpdateWithArgs` instead.
    */
   @Cordova()
   dbUpdate(tableName: string, updatedObject: any, whereClause: any): Promise<DbResult> {
@@ -1028,9 +1066,62 @@ export class UnviredCordovaSDK extends AwesomeCordovaNativePlugin {
    * ```
    * this.unviredSDK.dbExecuteStatement("SELECT * FROM CUSTOMER_HEADER WHERE CUSTOMER_ID = '39'")
    * ```
+   * @deprecated Use `dbExecuteStatementWithArgs` instead.
    */
   @Cordova()
   dbExecuteStatement(query: string): Promise<DbResult> {
+    return;
+  }
+
+  /**
+   * Delete records from the database.
+   *
+   * @param tableName Name of the table
+   * @param whereClause {Object} Browser: JSON object containing name-value pairs.
+   * Mobile: Or a Sqlite whereClause ( without the 'where' keyword )
+   * @param args Arguments to replace the '?' placeholders in the query if any
+   * Example:
+   * ```
+   * # Delete values from FORM_HEADER table where FORM_ID is 5caed815892215034dacad56
+   * this.unviredSDK.dbDeleteWithArgs('FORM_HEADER', "FORM_ID = ?", ['5caed815892215034dacad56'])
+   * ```
+   */
+  @Cordova()
+  dbDeleteWithArgs(tableName: string, whereClause: any, args: any[]): Promise<DbResult> {
+    return;
+  }
+
+  /**
+   * Update records in database.
+   *
+   * @param tableName Name of the table
+   * @param updatedObject JSON object containing updated name-value pairs.
+   * @param whereClause {Object} Browser: JSON object containing name-value pairs.
+   * Mobile: Or a Sqlite where Clause ( without the 'where' keyword )
+   * @param args Arguments to replace the '?' placeholders in the query if any
+   * Example:
+   * ```
+   * # Update NAME & NO from FORM_HEADER table where FORM_ID is 5caed815892215034dacad56
+   * this.unviredSDK.dbUpdateWithArgs('FORM_HEADER', {"NAME":"UPDATED_USER","UPDATED_NO":"0039"}, "FORM_ID = ?", ['5caed815892215034dacad56'])
+   * ```
+   */
+  @Cordova()
+  dbUpdateWithArgs(tableName: string, updatedObject: any, whereClause: any, args: any[]): Promise<DbResult> {
+    return;
+  }
+
+  /**
+   * Execute a SQL statement
+   *
+   * @param query {string} SQL Statement.
+   * @param args Arguments to replace the '?' placeholders in the query if any
+   * Example:
+   * ```
+   * this.unviredSDK.dbExecuteStatementWithArgs("SELECT * FROM CUSTOMER_HEADER WHERE CUSTOMER_ID = ?", ['39'])
+   * ```
+   */
+  @Cordova()
+  dbExecuteStatementWithArgs(query: string, args: any[]): Promise<DbResult> {
     return;
   }
 
@@ -1347,6 +1438,42 @@ export class UnviredCordovaSDK extends AwesomeCordovaNativePlugin {
   }
 
   /**
+   * Make an Initial Data Download (IDL) request to UMP.
+   * This method triggers the initial data download process by making a request to UMP for the specified Process Agent (PA) functions.
+   *
+   * Example 1: Request IDL for all marked PA functions
+   * ```
+   * await this.unviredSDK.sendInitialDataDownloadRequest([])
+   * ```
+   *
+   * Example 2: Request IDL for specific PA functions with input
+   * ```
+   * const initialDataInput = new InitialDataInput();
+   * initialDataInput.name = "PA_GET_CUSTOMER_DETAILS";
+   * initialDataInput.input = {
+   *   "BE_NAME": [
+   *     {
+   *       "NAME_OF_HEADER": {
+   *         "FIELD1": "FIELD_1_VALUE",
+   *         "FIELD2": "FIELD_2_VALUE"
+   *       }
+   *     }
+   *   ]
+   * };
+   * await this.unviredSDK.sendInitialDataDownloadRequest([initialDataInput]);
+   * ```
+   *
+   * @param functions Array of objects, each containing:
+   *  - paName: string - Name of the Process Agent function.
+   *  - input: any - Input data to be sent for the PA function.
+   * Pass an empty array to request initial data for all marked PA functions.
+   */
+  @Cordova()
+  sendInitialDataDownloadRequest(functions: InitialDataDownloadRequest[]): Promise<void> {
+    return;
+  }
+
+  /**
    * Returns an observable containing the state of the synchronisation along with count (if applicable). Possible values are as follows:
    * 1. Sending (count) // Ex: sending(3), there are 3 items in outbox and device is online. i.e datasender thread running
    * 2. Receiving // There are items to be received from server & device is online
@@ -1360,6 +1487,19 @@ export class UnviredCordovaSDK extends AwesomeCordovaNativePlugin {
   getSynchronizationState(): Observable<string> {
     return;
   }
+
+  /** For Mobile platform only
+   * getPushNotificationListener - Register for callback on Push Notification received from server
+   *
+   * Mobile Only api
+   */
+  @Cordova({
+    observable: true,
+  })
+  getPushNotificationListener(): Observable<string> {
+    return;
+  };
+
 
   /**
    * For Browser platform only.
@@ -1670,6 +1810,54 @@ export class UnviredCordovaSDK extends AwesomeCordovaNativePlugin {
    */
   @Cordova()
   refreshJWTToken(): Promise<any> {
+    return;
+  }
+
+  /**
+   * Sets the authentication token (JWT) to be used for communicating with UMP server.
+   * This api is useful in scenarios where the app has its own authentication mechanism and receives a JWT token from UMP server.
+   * The app can set this token using this api and all subsequent communication with UMP server would be authenticated using this token.
+   *
+   * @param token JWT token received from UMP server.
+   * @returns A promise containing true if the operation was successful.
+   */
+  @Cordova()
+  setAuthToken(token: string): Promise<boolean> {
+    return;
+  }
+
+  /**
+   * Get the validity of the authentication token in seconds.
+   * If the return value is less than or equal to 0, then the token is either not set or expired.
+   * If the return value is greater than 0, then it contains the number of seconds for which the token is valid from now.
+   *
+   * @returns A promise containing number of seconds for which the token is valid.
+   */
+  @Cordova()
+  getAuthTokenValidity(): Promise<number> {
+    return;
+  }
+
+  /**
+   * Get UMP request configuration with authentication headers
+   * @param {string} endpoint - The API endpoint
+   * @param {Object} [options] - Optional configuration object
+   * @param {string} [options.customUrl] - Optional custom base URL to override server URL
+   * @returns UMPRequestConfig which contails url and auth header
+   * Example: -
+   *
+   * // with auth api
+   * await this.unviredSDK.getUMPRequestConfig("/auth/getmodel/tenex/tenex_model.json");
+   *
+   * // with rest api end point
+   * // variation: 1
+   * await this.unviredSDK.getUMPRequestConfig("/api/v1/users");
+   *
+   * // variation: 2
+   * await this.unviredSDK.getUMPRequestConfig("/UMP/api/v1/users");
+   */
+  @Cordova()
+  getUMPRequestConfig(endpoint: string, options?: { customUrl?: string }): Promise<UMPRequestConfig> {
     return;
   }
 }

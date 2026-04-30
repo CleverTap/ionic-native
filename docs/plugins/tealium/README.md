@@ -1,20 +1,29 @@
-# ConsentExpiry
- ''
-$ npm install @awesome-cordova-plugins/tealium
-```
+---
+description: >-
+  Tealium plugin for Cordova and Ionic. This plugin does provides a wrapper around the Tealium Cordova Plugin for Ionic Native.  For full documentation, see…
+---
 
-## [Usage Documentation](https://danielsogl.gitbook.io/awesome-cordova-plugins/plugins/tealium/)
-
-Plugin Repo: [https://github.com/Tealium/cordova-plugin](https://github.com/Tealium/cordova-plugin)
+# Tealium
 
 This plugin does provides a wrapper around the Tealium Cordova Plugin for Ionic Native.
 
 For full documentation, see [https://docs.tealium.com/platforms/cordova/](https://docs.tealium.com/platforms/cordova/)
 
-## Supported platforms
+## Installation
+
+```bash
+
+npm install @awesome-cordova-plugins/tealium
+```
+
+**Plugin Repo:** [https://github.com/Tealium/cordova-plugin](https://github.com/Tealium/cordova-plugin)
+
+## Supported Platforms
 
 - Android
-  - iOS
-  
+- iOS
 
+## Further Information
 
+- [Installation Guide](../../installation.md)
+- [FAQ](../../faq.md)

@@ -1,11 +1,21 @@
-import { factory, PropertyDeclaration } from 'typescript';
+import {
+  ClassElement,
+  factory,
+  GetAccessorDeclaration,
+  Identifier,
+  PropertyDeclaration,
+  SetAccessorDeclaration,
+} from 'typescript';
 
 import { getDecorator, getDecoratorName } from '../helpers';
 
-export function transformProperty(members: any[], index: number) {
+export function transformProperty(
+  members: ClassElement[],
+  index: number
+): [GetAccessorDeclaration, SetAccessorDeclaration] | PropertyDeclaration {
   const property = members[index] as PropertyDeclaration,
     decorator = getDecorator(property),
-    decoratorName = getDecoratorName(decorator);
+    decoratorName = decorator ? getDecoratorName(decorator) : undefined;
 
   let type: 'cordova' | 'instance';
 
@@ -22,17 +32,18 @@ export function transformProperty(members: any[], index: number) {
       return property;
   }
 
+  const propertyName = (property.name as Identifier).text;
+
   const getter = factory.createGetAccessorDeclaration(
     undefined,
-    undefined,
     property.name,
-    undefined,
+    [],
     property.type,
     factory.createBlock([
       factory.createReturnStatement(
         factory.createCallExpression(factory.createIdentifier(type + 'PropertyGet'), undefined, [
           factory.createThis(),
-          factory.createStringLiteral((property.name as any).text),
+          factory.createStringLiteral(propertyName),
         ])
       ),
     ])
@@ -40,14 +51,13 @@ export function transformProperty(members: any[], index: number) {
 
   const setter = factory.createSetAccessorDeclaration(
     undefined,
-    undefined,
     property.name,
-    [factory.createParameterDeclaration(undefined, undefined, undefined, 'value', undefined, property.type)],
+    [factory.createParameterDeclaration(undefined, undefined, 'value', undefined, property.type)],
     factory.createBlock([
       factory.createExpressionStatement(
         factory.createCallExpression(factory.createIdentifier(type + 'PropertySet'), undefined, [
           factory.createThis(),
-          factory.createStringLiteral((property.name as any).text),
+          factory.createStringLiteral(propertyName),
           factory.createIdentifier('value'),
         ])
       ),

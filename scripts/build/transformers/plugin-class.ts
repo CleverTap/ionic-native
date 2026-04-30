@@ -1,6 +1,12 @@
 import {
+  canHaveDecorators,
+  canHaveModifiers,
+  ClassDeclaration,
   Decorator,
   factory,
+  getDecorators as tsGetDecorators,
+  getModifiers as tsGetModifiers,
+  Identifier,
   SourceFile,
   SyntaxKind,
   TransformationContext,
@@ -12,20 +18,18 @@ import { Logger } from '../../logger';
 import { convertValueToLiteral, getDecorator, getDecoratorArgs, getDecoratorName } from '../helpers';
 import { transformMembers } from './members';
 
-function transformClass(cls: any, ngcBuild?: boolean) {
-  Logger.profile('transformClass: ' + cls.name.text);
+function transformClass(cls: ClassDeclaration, ngcBuild?: boolean) {
+  Logger.profile('transformClass: ' + cls.name!.text);
 
   const pluginStatics = [];
-  const dec: Decorator = getDecorator(cls);
+  const dec = getDecorator(cls);
 
   if (dec) {
     const pluginDecoratorArgs = getDecoratorArgs(dec);
 
-    // add plugin decorator args as static properties of the plugin's class
     for (const prop in pluginDecoratorArgs) {
       pluginStatics.push(
         factory.createPropertyDeclaration(
-          undefined,
           [factory.createToken(SyntaxKind.StaticKeyword)],
           factory.createIdentifier(prop),
           undefined,
@@ -36,19 +40,22 @@ function transformClass(cls: any, ngcBuild?: boolean) {
     }
   }
 
-  cls = factory.createClassDeclaration(
-    ngcBuild && cls.decorators && cls.decorators.length
-      ? cls.decorators.filter((d) => getDecoratorName(d) === 'Injectable')
-      : undefined, // remove Plugin and Injectable decorators
-    [factory.createToken(SyntaxKind.ExportKeyword)],
+  const clsDecorators = canHaveDecorators(cls) ? tsGetDecorators(cls) : undefined;
+  const keepDecorators =
+    ngcBuild && clsDecorators && clsDecorators.length
+      ? clsDecorators.filter((d: Decorator) => getDecoratorName(d) === 'Injectable')
+      : [];
+
+  const result = factory.createClassDeclaration(
+    [...keepDecorators, factory.createToken(SyntaxKind.ExportKeyword)],
     cls.name,
     cls.typeParameters,
     cls.heritageClauses,
     [...transformMembers(cls), ...pluginStatics]
   );
 
-  Logger.profile('transformClass: ' + cls.name.text);
-  return cls;
+  Logger.profile('transformClass: ' + (result.name as Identifier).text);
+  return result;
 }
 
 function transformClasses(file: SourceFile, ctx: TransformationContext, ngcBuild?: boolean) {
@@ -58,11 +65,11 @@ function transformClasses(file: SourceFile, ctx: TransformationContext, ngcBuild
     (node) => {
       if (
         node.kind !== SyntaxKind.ClassDeclaration ||
-        (node.modifiers && node.modifiers.find((v) => v.kind === SyntaxKind.DeclareKeyword))
+        (canHaveModifiers(node) ? tsGetModifiers(node) : undefined)?.find((v) => v.kind === SyntaxKind.DeclareKeyword)
       ) {
         return node;
       }
-      return transformClass(node, ngcBuild);
+      return transformClass(node as ClassDeclaration, ngcBuild);
     },
     ctx
   );
@@ -70,7 +77,7 @@ function transformClasses(file: SourceFile, ctx: TransformationContext, ngcBuild
 
 export function pluginClassTransformer(ngcBuild?: boolean): TransformerFactory<SourceFile> {
   return (ctx: TransformationContext) => {
-    return (tsSourceFile) => {
+    return (tsSourceFile: SourceFile) => {
       if (tsSourceFile.fileName.indexOf('src/@awesome-cordova-plugins/plugins') > -1) {
         return transformClasses(tsSourceFile, ctx, ngcBuild);
       }

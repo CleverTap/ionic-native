@@ -1,5 +1,5 @@
-import { unlinkSync, writeJSONSync } from 'fs-extra';
-import { resolve } from 'path';
+import { unlinkSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { ClassDeclaration, SyntaxKind, TransformationContext, visitEachChild } from 'typescript';
 
 import { hasDecorator, ROOT } from '../helpers';
@@ -23,7 +23,7 @@ export const EMIT_PATH = resolve(ROOT, 'injectable-classes.json');
  */
 export function extractInjectables() {
   return (ctx: TransformationContext) => {
-    return (tsSourceFile) => {
+    return (tsSourceFile: any) => {
       if (tsSourceFile.fileName.indexOf('src/@awesome-cordova-plugins/plugins') > -1) {
         visitEachChild(
           tsSourceFile,
@@ -36,7 +36,7 @@ export function extractInjectables() {
             if (isInjectable) {
               injectableClasses.push({
                 file: tsSourceFile.path,
-                className: (node as ClassDeclaration).name.text,
+                className: (node as ClassDeclaration).name!.text,
                 dirName: tsSourceFile.path.split(/[\\\/]+/).reverse()[1],
               });
             }
@@ -51,7 +51,7 @@ export function extractInjectables() {
 }
 
 export function emitInjectableClasses() {
-  writeJSONSync(EMIT_PATH, injectableClasses);
+  writeFileSync(EMIT_PATH, JSON.stringify(injectableClasses, null, 2));
 }
 
 export function cleanEmittedData() {

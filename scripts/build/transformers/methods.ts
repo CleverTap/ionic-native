@@ -1,4 +1,4 @@
-import { Expression, factory, MethodDeclaration, SyntaxKind } from 'typescript';
+import { Expression, factory, Identifier, MethodDeclaration, SyntaxKind } from 'typescript';
 
 import { Logger } from '../../logger';
 import {
@@ -12,13 +12,14 @@ import {
 export function transformMethod(method: MethodDeclaration) {
   if (!method) return;
 
-  const decorator = getDecorator(method),
-    decoratorName = getDecoratorName(decorator),
-    decoratorArgs = getDecoratorArgs(decorator);
+  const decorator = getDecorator(method);
+  if (!decorator) return;
+
+  const decoratorName = getDecoratorName(decorator);
+  const decoratorArgs = getDecoratorArgs(decorator);
 
   try {
     return factory.createMethodDeclaration(
-      undefined,
       undefined,
       undefined,
       method.name,
@@ -28,19 +29,22 @@ export function transformMethod(method: MethodDeclaration) {
       method.type,
       factory.createBlock([factory.createReturnStatement(getMethodBlock(method, decoratorName, decoratorArgs))])
     );
-  } catch (e) {
-    Logger.error('Error transforming method: ' + (method.name as any).text);
-    Logger.error(e.message);
+  } catch (e: unknown) {
+    Logger.error('Error transforming method: ' + (method.name as Identifier).text);
+    Logger.error(e instanceof Error ? e.message : String(e));
   }
 }
 
-function getMethodBlock(method: MethodDeclaration, decoratorName: string, decoratorArgs: any): Expression {
+function getMethodBlock(
+  method: MethodDeclaration,
+  decoratorName: string,
+  decoratorArgs: Record<string, string | number | boolean | string[]>
+): Expression {
   const decoratorMethod = getMethodsForDecorator(decoratorName)[0];
 
   switch (decoratorName) {
     case 'CordovaCheck':
     case 'InstanceCheck':
-      // TODO remove function wrapper
       return factory.createImmediatelyInvokedArrowFunction([
         factory.createIfStatement(
           factory.createBinaryExpression(
@@ -48,14 +52,14 @@ function getMethodBlock(method: MethodDeclaration, decoratorName: string, decora
             SyntaxKind.EqualsEqualsEqualsToken,
             factory.createTrue()
           ),
-          method.body
+          method.body!
         ),
       ]);
 
     default:
       return factory.createCallExpression(factory.createIdentifier(decoratorMethod), undefined, [
         factory.createThis(),
-        factory.createStringLiteral(decoratorArgs?.methodName || (method.name as any).text),
+        factory.createStringLiteral((decoratorArgs?.methodName as string) || (method.name as Identifier).text),
         convertValueToLiteral(decoratorArgs),
         factory.createIdentifier('arguments'),
       ]);

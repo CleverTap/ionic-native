@@ -1,20 +1,25 @@
+---
+description: >-
+  BiometricWrapper plugin for Cordova and Ionic. This plugin capture biometric(Iris and Fingerprint) and validate the user. May be used in Banking domain
+---
+
 # BiometricWrapper
-
-```
-$ ''
-$ npm install @awesome-cordova-plugins/biometric-wrapper
-```
-
-## [Usage Documentation](https://danielsogl.gitbook.io/awesome-cordova-plugins/plugins/biometric-wrapper/)
-
-Plugin Repo: ['']('')
 
 This plugin capture biometric(Iris and Fingerprint) and validate the user.
 May be used in Banking domain
 
-## Supported platforms
+## Installation
+
+```bash
+
+npm install @awesome-cordova-plugins/biometric-wrapper
+```
+
+## Supported Platforms
 
 - Android
-  
 
+## Further Information
 
+- [Installation Guide](../../installation.md)
+- [FAQ](../../faq.md)

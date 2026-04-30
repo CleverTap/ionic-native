@@ -1,11 +1,12 @@
-import { readdirSync } from 'fs-extra';
-import { camelCase, clone } from 'lodash';
-import { join, resolve } from 'path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import {
   ArrayLiteralExpression,
+  canHaveDecorators,
   Decorator,
   Expression,
   factory,
+  getDecorators as tsGetDecorators,
   Node,
   ObjectLiteralElementLike,
   ObjectLiteralExpression,
@@ -15,41 +16,46 @@ import {
 import { Logger } from '../logger';
 
 export const ROOT = resolve(__dirname, '../../');
-// tslint:disable-next-line:no-var-requires
-export const TS_CONFIG = clone(require(resolve(ROOT, 'tsconfig.json')));
+export const TS_CONFIG = JSON.parse(readFileSync(resolve(ROOT, 'tsconfig.json'), 'utf-8'));
 export const COMPILER_OPTIONS = TS_CONFIG.compilerOptions;
 export const PLUGINS_ROOT = join(ROOT, 'src/@awesome-cordova-plugins/plugins/');
-export const PLUGIN_PATHS = readdirSync(PLUGINS_ROOT).map((d) => join(PLUGINS_ROOT, d, 'index.ts'));
+export const PLUGIN_PATHS = readdirSync(PLUGINS_ROOT).map((d: string) => join(PLUGINS_ROOT, d, 'index.ts'));
 
-export function getDecorator(node: Node, index = 0): Decorator {
-  if (node.decorators && node.decorators[index]) {
-    return node.decorators[index];
+export function getDecorator(node: Node, index = 0): Decorator | undefined {
+  const decorators = canHaveDecorators(node) ? tsGetDecorators(node) : undefined;
+  if (decorators && decorators[index]) {
+    return decorators[index];
   }
+  return undefined;
 }
 
 export function hasDecorator(decoratorName: string, node: Node): boolean {
+  const decorators = canHaveDecorators(node) ? tsGetDecorators(node) : undefined;
   return (
-    node.decorators &&
-    node.decorators.length &&
-    node.decorators.findIndex((d) => getDecoratorName(d) === decoratorName) > -1
+    !!decorators && decorators.length > 0 && decorators.findIndex((d) => getDecoratorName(d) === decoratorName) > -1
   );
 }
 
-export function getDecoratorName(decorator: any) {
-  return decorator.expression.expression.text;
+export function getDecoratorName(decorator: Decorator): string {
+  return (decorator.expression as unknown as { expression: { text: string } }).expression.text;
 }
 
-export function getRawDecoratorArgs(decorator: any): any[] {
-  if (decorator.expression.arguments.length === 0) return [];
-  return decorator.expression.arguments[0].properties;
+export function getRawDecoratorArgs(
+  decorator: Decorator
+): Array<{ name: { text: string }; initializer: { kind: number; text: string; elements: Array<{ text: string }> } }> {
+  const expr = decorator.expression as unknown as {
+    arguments: Array<{ properties: ReturnType<typeof getRawDecoratorArgs> }>;
+  };
+  if (expr.arguments.length === 0) return [];
+  return expr.arguments[0].properties;
 }
 
-export function getDecoratorArgs(decorator: any) {
-  const properties: any[] = getRawDecoratorArgs(decorator);
-  const args = {};
+export function getDecoratorArgs(decorator: Decorator): Record<string, string | number | boolean | string[]> {
+  const properties = getRawDecoratorArgs(decorator);
+  const args: Record<string, string | number | boolean | string[]> = {};
 
   properties.forEach((prop) => {
-    let val: number | boolean;
+    let val: string | number | boolean | string[];
 
     switch (prop.initializer.kind) {
       case SyntaxKind.StringLiteral:
@@ -58,7 +64,7 @@ export function getDecoratorArgs(decorator: any) {
         break;
 
       case SyntaxKind.ArrayLiteralExpression:
-        val = prop.initializer.elements.map((e: any) => e.text);
+        val = prop.initializer.elements.map((e) => e.text);
         break;
 
       case SyntaxKind.TrueKeyword:
@@ -85,17 +91,16 @@ export function getDecoratorArgs(decorator: any) {
 }
 
 /**
- * FROM STENCIL
  * Convert a js value into typescript AST
- * @param val array, object, string, boolean, or number
- * @returns Typescript Object Literal, Array Literal, String Literal, Boolean Literal, Numeric Literal
  */
-export function convertValueToLiteral(val: any) {
+export function convertValueToLiteral(
+  val: string | number | boolean | string[] | Record<string, unknown> | unknown[]
+): Expression {
   if (Array.isArray(val)) {
     return arrayToArrayLiteral(val);
   }
-  if (typeof val === 'object') {
-    return objectToObjectLiteral(val);
+  if (typeof val === 'object' && val !== null) {
+    return objectToObjectLiteral(val as Record<string, unknown>);
   }
   if (typeof val === 'number') {
     return factory.createNumericLiteral(val);
@@ -106,37 +111,26 @@ export function convertValueToLiteral(val: any) {
   if (typeof val === 'boolean') {
     return val ? factory.createTrue() : factory.createFalse();
   }
+  throw new Error('Unexpected value type: ' + typeof val);
 }
 
-/**
- * FROM STENCIL
- * Convert a js object into typescript AST
- * @param obj key value object
- * @returns Typescript Object Literal Expression
- */
-function objectToObjectLiteral(obj: { [key: string]: any }): ObjectLiteralExpression {
+function objectToObjectLiteral(obj: Record<string, unknown>): ObjectLiteralExpression {
   const newProperties: ObjectLiteralElementLike[] = Object.keys(obj).map((key: string): ObjectLiteralElementLike => {
     return factory.createPropertyAssignment(
       factory.createStringLiteral(key),
-      convertValueToLiteral(obj[key]) as Expression
+      convertValueToLiteral(obj[key] as string | number | boolean | string[])
     );
   });
 
   return factory.createObjectLiteralExpression(newProperties);
 }
 
-/**
- * FROM STENCIL
- * Convert a js array into typescript AST
- * @param list arrayÏ
- * @returns Typescript Array Literal Expression
- */
-function arrayToArrayLiteral(list: any[]): ArrayLiteralExpression {
-  const newList: any[] = list.map(convertValueToLiteral);
+function arrayToArrayLiteral(list: unknown[]): ArrayLiteralExpression {
+  const newList = list.map((item) => convertValueToLiteral(item as string | number | boolean));
   return factory.createArrayLiteralExpression(newList);
 }
 
-export function getMethodsForDecorator(decoratorName: string) {
+export function getMethodsForDecorator(decoratorName: string): string[] {
   switch (decoratorName) {
     case 'CordovaProperty':
       return ['cordovaPropertyGet', 'cordovaPropertySet'];
@@ -148,5 +142,5 @@ export function getMethodsForDecorator(decoratorName: string) {
       return ['instanceAvailability'];
   }
 
-  return [camelCase(decoratorName)];
+  return [decoratorName.charAt(0).toLowerCase() + decoratorName.slice(1)];
 }

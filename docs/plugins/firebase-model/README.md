@@ -1,18 +1,14 @@
-# FirebaseModelInput
-Result
-t
-cordova plugin add cordova-plugin-firebase-model
-$ npm install @awesome-cordova-plugins/firebase-model
-```
+---
+description: >-
+  Firebase Model plugin for Cordova and Ionic. This plugin downloads the TensorFlow model from firebase and classify the images.  ```typescript import {…
+---
 
-## [Usage Documentation](https://danielsogl.gitbook.io/awesome-cordova-plugins/plugins/firebase-model/)
-
-Plugin Repo: ['']('')
+# Firebase Model
 
 This plugin downloads the TensorFlow model from firebase and classify the images.
 
 ```typescript
-import { FirebaseModel } from '@ionic-native/ionic-native-firebase-model';
+import { FirebaseModel } from '@awesome-cordova-plugins/firebase-model';
 
 
 constructor(private firebaseModel: FirebaseModel) { }
@@ -37,9 +33,18 @@ catch (e) {
 
 ```
 
-## Supported platforms
+## Installation
+
+```bash
+ionic cordova plugin add cordova-plugin-firebase-model
+npm install @awesome-cordova-plugins/firebase-model
+```
+
+## Supported Platforms
 
 - iOS
-  
 
+## Further Information
 
+- [Installation Guide](../../installation.md)
+- [FAQ](../../faq.md)
