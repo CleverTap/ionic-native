@@ -92,7 +92,7 @@ export class CleverTap extends AwesomeCordovaNativePlugin {
    * @param {boolean} allowSystemEvents - Set to `true` to allow system-level event tracking.
    */
   @Cordova()
-  setOptOut(optOut: boolean, allowSystemEvents?: boolean): Promise<any> {
+  setOptOut(userOptOut: boolean, allowSystemEvents?: boolean): Promise<any> {
     return;
   }
 
@@ -725,6 +725,20 @@ export class CleverTap extends AwesomeCordovaNativePlugin {
   }
 
   /**
+   * Dismisses the currently visible Picture-in-Picture (PIP) InApp notification.
+   * No-op when no PIP InApp is visible; other InApp types are never affected.
+   * Note: dismissing frees the InApp display slot, so the next queued InApp may show immediately.
+   * To keep a screen free of all InApps, pair this with 'suspendInAppNotifications' on screen entry
+   * and 'resumeInAppNotifications' on exit.
+   *
+   * @returns {Promise<any>}
+   */
+  @Cordova()
+  dismissPipInApp(): Promise<any> {
+    return;
+  }
+
+  /**
    * Deletes all images and gifs which are preloaded for inapps in cs mode.
    *
    * @param expiredOnly {boolean} - to clear only assets which will not be needed further for inapps
@@ -976,6 +990,18 @@ export class CleverTap extends AwesomeCordovaNativePlugin {
   }
 
   /**
+   * Requests an on-demand refresh of the App Inbox from the CleverTap servers.
+   * Throttled to one call every 5 minutes; the throttle is shared with the built-in pull-to-refresh gesture.
+   * Resolves with true if messages were fetched, false if the fetch was throttled, disabled for the session or failed.
+   *
+   * @returns {Promise<any>}
+   */
+  @Cordova()
+  fetchInbox(): Promise<any> {
+    return;
+  }
+
+  /**
    * Call this to Get All Display Units
    *
    * @returns {Promise<any>}
@@ -1015,6 +1041,18 @@ export class CleverTap extends AwesomeCordovaNativePlugin {
    */
   @Cordova()
   pushDisplayUnitClickedEventForID(id: string): Promise<any> {
+    return;
+  }
+
+  /**
+   * Call this to Push a DisplayUnit Element Clicked Event for ID
+   *
+   * @param unitId {string} - the Display Unit ID
+   * @param additionalProperties {any} - properties to merge into the event, e.g. the 'wzrk_element_id' taken from the clicked action's metadata
+   * @returns {Promise<any>}
+   */
+  @Cordova()
+  pushDisplayUnitElementClickedEventForID(unitId: string, additionalProperties: any): Promise<any> {
     return;
   }
 
